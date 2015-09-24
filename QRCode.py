@@ -138,8 +138,6 @@ def main(arg):
     json.dump(asist, archive)
 
     j = json.dumps(asist)
-    print j
-    print type(j)
     requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
 
 
