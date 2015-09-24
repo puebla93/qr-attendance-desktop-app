@@ -86,7 +86,7 @@ def valid_qrcode(qrcode_data):
 def get_student_info(qrcode_data):
     # sacar la info del qrcode
     qrcode_data = qrcode_data.split("\n") 
-
+    #chequear el sexo
     if int(qrcode_data[2][-2]) % 2 == 0:
         gender = "male"
     else:
@@ -120,6 +120,9 @@ def main(arg):
         camera.show(image)
 
         result = scanner.get_qrcodes(gray_image)
+
+
+        
 
         if len(result)==0: continue;
 
