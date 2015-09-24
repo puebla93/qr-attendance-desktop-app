@@ -1,5 +1,5 @@
 #- all the imports ------------------------------------------------------------#
-import beep
+import beep  
 import cv2
 import datetime
 import zbar
@@ -9,8 +9,8 @@ import requests
 from cvinput import cvwindows, Obj
 
 #------------------------------------------------------------------------------#
-
-class QRCode(object):
+# QRCode contain the data and location of the QRCode in the image
+class QRCode(object):  
     """QRCode class"""
     def __init__(self, data, location):
         self.data = data
