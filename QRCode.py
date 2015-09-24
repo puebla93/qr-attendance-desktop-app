@@ -102,13 +102,13 @@ def get_student_info(qrcode_data):
 
 #------------------------------------------------------------------------------#
 def main(arg):
-    
+
     camera = cvwindows.create("Camera")
 
     date = str(datetime.date.today())
     asist = { "date": date, "students":[] }
 
-    capture = cv2.VideoCapture(1)
+    capture = cv2.VideoCapture(0)
 
     while cvwindows.event_loop():
         _ , image = capture.read()
