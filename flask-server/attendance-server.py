@@ -1,7 +1,3 @@
-# all imports
-
-#from __future__ import print_function
-
 import sqlite3
 from flask import Flask, request, g, redirect, render_template, jsonify, json
 from contextlib import closing
