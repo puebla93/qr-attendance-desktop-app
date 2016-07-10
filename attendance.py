@@ -3,6 +3,7 @@ from cvinput import cvwindows, Obj
 import cv2
 import zbar
 import beep
+import sqlite3
 
 import argparse
 import datetime
@@ -25,19 +26,19 @@ def parse_args():
     parser.add_argument('-f', '--folder', type=folder, default="./", help='The path of the folder to store the result. Defaults to "./"')
     return parser.parse_args()
 
-def main():
+def main(subject, classtype):
     args = parse_args()
 
 
     camera = cvwindows.create("Camera")
 
-    date = str(datetime.date.today())
+    date = datetime.date.today()
     asist = { "date": date, "students":[], "course": args.topic}
 
     capture = cv2.VideoCapture(args.camera)
     _ , image = capture.read()
     if image is None:
-        print "Invalid camera index. Use -c option to choose a correct camera on your system."
+        print ("Invalid camera index. Use -c option to choose a correct camera on your system.")
         sys.exit(1)
     h, w, _ = image.shape
     scanner = QRScanner(w,h)
@@ -62,9 +63,20 @@ def main():
                 asist["students"].append(student)
                 beep.beep()
 
-    file_path = os.path.join(args.folder, "attendance-%s-%s.json"%(date,args.topic))
-    archive = open(file_path, "w")
-    json.dump(asist, archive, indent=4)
+    # file_path = os.path.join(args.folder, "attendance-%s-%s.json"%(date,args.topic))
+    # archive = open(file_path, "w")
+    # json.dump(asist, archive, indent=4)
+
+    db = sqlite3.connect('attendance.db')
+    db.execute('''CREATE TABLE IF NOT EXISTS attendance
+             (id integer, date integer, subject text, classtype text, name text, uploaded boolean)''')
+    for student in asist["students"]:
+        db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False')''', 
+                    [student["ID"], date, subject, classtype, student["Name"]])
+
+    # Save (commit) the changes
+    db.commit()
+    db.close()
 
     # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
 
@@ -127,18 +139,20 @@ def get_student_info(qrcode_data):
     # sacar la info del qrcode
     qrcode_data = qrcode_data.split("\n") 
     #chequear el sexo
-    if int(qrcode_data[2][-2]) % 2 == 0:
-        gender = "male"
-    else:
-        gender = "female"
+    # if int(qrcode_data[2][-2]) % 2 == 0:
+    #     gender = "male"
+    # else:
+    #     gender = "female"
 
     return {
                 "ID": qrcode_data[2][-12:].strip(),
-                "Name": qrcode_data[0][2:].strip(),
-                "LastName": qrcode_data[1][2:].strip(),
-                "FV": qrcode_data[3][-9:].strip(),
-                "Gender": gender,
+                "Name": qrcode_data[0][2:].strip() + " " + qrcode_data[1][2:].strip(),
+                # "Name": qrcode_data[0][2:].strip(),
+                # "LastName": qrcode_data[1][2:].strip(),
+                # "FV": qrcode_data[3][-9:].strip(),
+                # "Gender": gender,
             }
 
 if __name__ == '__main__':
-    main() 
+    # main() 
+    main("subject_name", "classtype_name") 
