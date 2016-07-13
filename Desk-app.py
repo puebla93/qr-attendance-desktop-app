@@ -10,19 +10,22 @@ import zbar
 import beep
 import datetime
 import socket
+import json
 
 # error_message = None
 message_box = None
 spin_box = None
 scan_button = None
 stop_button= None
-pending_uploaded_label = None
 subject_lineEdit = None
 classtype_lineEdit = None
 details_textEdit = None
+userName_lineEdit = None
+password_lineEdit = None
+pending_uploaded_label = None
+camera_image = None
 camera_timer = None
 capture = None
-camera_image = None
 scanner = None
 db = None
 asist = []
@@ -60,6 +63,8 @@ def main():
     global spin_box
     global scan_button
     global stop_button
+    global userName_lineEdit
+    global password_lineEdit
     global pending_uploaded_label
     spin_box_label = QLabel("Choose a camera index")
     spin_box = QSpinBox()
@@ -79,10 +84,8 @@ def main():
     global classtype_lineEdit
     global details_textEdit
     camera_image = QLabel()
-    #PONER EN camera_image LA IMAGEN Image.png
-    # picture = QPicture()
-    # picture.load("Image.png")
-    # camera_image.setPicture(picture)
+    pix_map = QPixmap("Image-Black.png")
+    camera_image.setPixmap(pix_map)
     subject_label = QLabel("Subject")
     subject_lineEdit = QLineEdit()
     classtype_label = QLabel("Classtype")
@@ -97,6 +100,15 @@ def main():
     vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(stop_button)
     vertical_layout_izq.addStretch()
+    vertical_layout_izq.addWidget(subject_label)
+    vertical_layout_izq.addWidget(subject_lineEdit)
+    vertical_layout_izq.addStretch()
+    vertical_layout_izq.addWidget(classtype_label)
+    vertical_layout_izq.addWidget(classtype_lineEdit)
+    vertical_layout_izq.addStretch()
+    vertical_layout_izq.addWidget(details_Label)
+    vertical_layout_izq.addWidget(details_textEdit)
+    vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(userName_label)
     vertical_layout_izq.addWidget(userName_lineEdit)
     vertical_layout_izq.addStretch()
@@ -105,17 +117,8 @@ def main():
     vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(upload_button)
     vertical_layout_izq.addWidget(pending_uploaded_label)
-
+    
     vertical_layout_der.addWidget(camera_image)
-    vertical_layout_der.addStretch()
-    vertical_layout_der.addWidget(subject_label)
-    vertical_layout_der.addWidget(subject_lineEdit)
-    vertical_layout_der.addStretch()
-    vertical_layout_der.addWidget(classtype_label)
-    vertical_layout_der.addWidget(classtype_lineEdit)
-    vertical_layout_der.addStretch()
-    vertical_layout_der.addWidget(details_Label)
-    vertical_layout_der.addWidget(details_textEdit)
     
     horizontal_layout.addWidget(widget_izq)
     horizontal_layout.addWidget(widget_der)
@@ -200,7 +203,7 @@ def upload():
     PORT = 80
 
     my_socked = socket.socket()
-    s.connect((HOST, PORT))
+    # my_socked.connect((HOST, PORT))
 
     cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
     for line in cur.fetchall():
@@ -275,11 +278,8 @@ def cancel_scan():
     global capture
     capture.release()
     capture = None
-    #PONER EN camera_image LA IMAGEN Image.png
-    # picture = QPicture()
-    # picture.load("Image.png")
-    # camera_image.setPicture(picture)
-    camera_image.clear()
+    pix_map = QPixmap("Image-Black.png")
+    camera_image.setPixmap(pix_map)
     global pending_uploaded_label
     pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
 
