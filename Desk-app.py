@@ -11,9 +11,12 @@ import beep
 import datetime
 import socket
 import json
+import requests
+from requests.auth import HTTPBasicAuth
+# from http.client import HTTPSConnection
 
-# error_message = None
-message_box = None
+error_message = None
+# message_box = None
 spin_box = None
 scan_button = None
 stop_button= None
@@ -49,16 +52,17 @@ def main():
     horizontal_layout = QHBoxLayout()
     vertical_layout_izq = QVBoxLayout()
     vertical_layout_der = QVBoxLayout()
-    
+
     widget.setLayout(horizontal_layout)
     widget_izq.setLayout(vertical_layout_izq)
     widget_der.setLayout(vertical_layout_der)
 
-    # global dialogBox
-    # dialogBox = QErrorMessage()
-    global message_box
-    message_box = QMessageBox()
-    message_box.setWindowTitle("Error Message")
+    global error_message
+    error_message = QErrorMessage()
+    error_message.setWindowTitle("Error Message")
+    # global message_box
+    # message_box = QMessageBox()
+    # message_box.setWindowTitle("Error Message")
 
     global spin_box
     global scan_button
@@ -117,9 +121,9 @@ def main():
     vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(upload_button)
     vertical_layout_izq.addWidget(pending_uploaded_label)
-    
+
     vertical_layout_der.addWidget(camera_image)
-    
+
     horizontal_layout.addWidget(widget_izq)
     horizontal_layout.addWidget(widget_der)
 
@@ -196,41 +200,57 @@ def get_student_info(qrcode_data):
             }
 
 def upload():
-    user_name = userName_lineEdit.text()
-    password = password_lineEdit.text()
+    # user_name = userName_lineEdit.text()
+    user_name = 'h.quintero@lab.matcom.uh.cu'
+    # password = password_lineEdit.text()
+    password = '12345678'
 
-    HOST = 'localhost'
-    PORT = 80
+    # HOST = 'localhost'
+    # PORT = 80
 
-    my_socked = socket.socket()
-    # my_socked.connect((HOST, PORT))
+    url_login = '10.6.122.231:3000/users/sign_in'
 
-    cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
-    for line in cur.fetchall():
-        print(line)
-        # my_socked.send()
+    c = HTTPSConnection("10.6.122.231:3000")
 
-    my_socked.close()
+    a = requests.get(url_login, auth=HTTPBasicAuth(user_name, password))
+
+    print(a)
+
+    # my_socked = socket.socket()
+    # # my_socked.connect((HOST, PORT))
+
+    # # db.execute("UPDATE attendance SET uploaded = 'False'")
+    # cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
+    # for row in cur.fetchall():
+    #     # print(row)
+    #     # my_socked.send()
+    #     db.execute("UPDATE attendance SET uploaded = 'True' WHERE id = ? AND date = ?",[row[0], row[1]])
+    #     pass
+
+    # # db.commit()
+    # global pending_uploaded_label
+    # pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
+    # my_socked.close()
 
 def procces_frame():
     image = None
     global capture
     if capture is None:
         capture = cv2.VideoCapture(spin_box.value())
-        _ , image = capture.read()
+        _, image = capture.read()
         if image is None:
             cancel_scan()
-            # error_message.showMessage("Invalid camera index. Use -c option to choose a correct camera on your system.")
-            # error_message.show()
-            message_box.setText("Invalid camera index.")
-            message_box.show()
+            error_message.showMessage("Invalid camera index.")
+            error_message.show()
+            # message_box.setText("Invalid camera index.")
+            # message_box.show()
             return
         h, w, c = image.shape
         global  scanner
-        scanner = QRScanner(w,h)
+        scanner = QRScanner(w, h)
     if image is None:
-        _ , image = capture.read()
-    
+        _, image = capture.read()
+
     #Poner en un metodo showImage(image)
     h, w, c = image.shape
     cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
@@ -252,14 +272,14 @@ def procces_frame():
         scanned = False
         #COMPROBAR SI EL ESTUDIANTE YA HA SIDO INSERTADO EN LA BASE DE DATOS
         for s in asist:
-           if s == student["ID"]: scanned= True
+            if s == student["ID"]: scanned = True
 
         if not scanned:
             asist.append(student["ID"])
             date = datetime.datetime.now()
             subject = subject_lineEdit.text()
             classtype = classtype_lineEdit.text()
-            details =  details_textEdit.toPlainText()
+            details = details_textEdit.toPlainText()
             db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', 
                         [student["ID"], date, subject, classtype, student["Name"], details])
             # Save (commit) the changes
