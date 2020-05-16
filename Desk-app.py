@@ -18,7 +18,6 @@ from attendance import QRCode, QRScanner, valid_qrcode, get_student_info
 import beep
 
 error_message = None
-# message_box = None
 spin_box = None
 scan_button = None
 stop_button= None
@@ -34,6 +33,7 @@ capture = None
 scanner = None
 db = None
 asist = []
+camera_size = QSize(640, 480)
 
 def main():
     app = QApplication(sys.argv)
@@ -50,6 +50,7 @@ def main():
     widget.setWindowTitle("Attendance")
     widget_izq = QWidget()
     widget_der = QWidget()
+    widget_der.setMinimumSize(camera_size)
 
     horizontal_layout = QHBoxLayout()
     vertical_layout_izq = QVBoxLayout()
@@ -61,10 +62,6 @@ def main():
 
     global error_message
     error_message = QErrorMessage()
-    error_message.setWindowTitle("Error Message")
-    # global message_box
-    # message_box = QMessageBox()
-    # message_box.setWindowTitle("Error Message")
 
     global spin_box
     global scan_button
@@ -91,7 +88,8 @@ def main():
     global details_textEdit
     camera_image = QLabel()
     pix_map = QPixmap("Image-Black.png")
-    camera_image.setPixmap(pix_map)
+    camera_image.setStyleSheet("background-color: black")
+    # camera_image.setPixmap(pix_map)
     subject_label = QLabel("Subject")
     subject_lineEdit = QLineEdit()
     classtype_label = QLabel("Classtype")
@@ -171,74 +169,78 @@ def upload():
     # pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
     # my_socked.close()
 
-def procces_frame():
-    image = None
-    global capture
-    if capture is None:
-        capture = cv2.VideoCapture(spin_box.value())
-        _, image = capture.read()
-        if image is None:
-            cancel_scan()
-            error_message.showMessage("Invalid camera index.")
-            error_message.show()
-            # message_box.setText("Invalid camera index.")
-            # message_box.show()
-            return
-        h, w, c = image.shape
-        global  scanner
-        scanner = QRScanner(w, h)
-    if image is None:
-        _, image = capture.read()
-
-    #Poner en un metodo showImage(image)
+def showImage(image):
     h, w, c = image.shape
     cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
     qimage = QImage(image, w, h, c * w, QImage.Format_RGB888)
     pix_map = QPixmap.fromImage(qimage)
     camera_image.setPixmap(pix_map)
 
+def scan_image(image):
+    global  scanner
+    if scanner is None:
+        h, w, _ = image.shape
+        scanner = QRScanner(w, h)
+
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     result = scanner.get_qrcodes(gray_image)
-
-    if len(result) == 0:
-        return
 
     for qr in result:
         if not valid_qrcode(qr.data):
             continue
+
         student = get_student_info(qr.data)
-
-        scanned = False
-        #COMPROBAR SI EL ESTUDIANTE YA HA SIDO INSERTADO EN LA BASE DE DATOS
-        for s in asist:
-            if s == student["ID"]: scanned = True
-
-        if not scanned:
-            asist.append(student["ID"])
+        # check if the student has already been inserted in the database
+        if not student["ID"] in asist:
             date = datetime.datetime.now()
             subject = subject_lineEdit.text()
             classtype = classtype_lineEdit.text()
             details = details_textEdit.toPlainText()
+
             db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', 
                         [student["ID"], date, subject, classtype, student["Name"], details])
             # Save (commit) the changes
             db.commit()
+            asist.append(student["ID"])
             beep.beep()
+
+def procces_frame():
+    _, image = capture.read()
+    if image is None:
+        cancel_scan()
+        error_message.setWindowTitle("Invalid camera index")
+        error_message.showMessage("The camera index you choose is invalid.\nSelect 0 if you dont't have a USB camera connected")
+        error_message.show()
+        return
+
+    showImage(image)
+
+    # scan_image(image)
 
 def start_scan():
     stop_button.setEnabled(True)
     scan_button.setEnabled(False)
     camera_timer.start(50)
 
+    global capture
+    capture = cv2.VideoCapture(spin_box.value())
+
 def cancel_scan():
     stop_button.setEnabled(False)
     scan_button.setEnabled(True)
     camera_timer.stop()
+
     global capture
     capture.release()
     capture = None
+    global  scanner
+    scanner = None
+    global asist
+    asist = []
+
     pix_map = QPixmap("Image-Black.png")
     camera_image.setPixmap(pix_map)
+
     global pending_uploaded_label
     pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
 
