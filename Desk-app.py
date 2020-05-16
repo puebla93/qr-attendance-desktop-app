@@ -183,24 +183,30 @@ def scan_image(image):
         scanner = QRScanner(w, h)
 
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    result = scanner.get_qrcodes(gray_image)
+    qrs = scanner.get_qrcodes(gray_image)
 
-    for qr in result:
+    return qrs
+
+def insert_attendance_into_data_base(student):
+    date = datetime.datetime.now()
+    subject = subject_lineEdit.text()
+    classtype = classtype_lineEdit.text()
+    details = details_textEdit.toPlainText()
+
+    db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', 
+                [student["ID"], date, subject, classtype, student["Name"], details])
+    # Save (commit) the changes
+    db.commit()
+
+def save_attendance(qrs):
+     for qr in qrs:
         if not valid_qrcode(qr.data):
             continue
 
         student = get_student_info(qr.data)
         # check if the student has already been inserted in the database
         if not student["ID"] in asist:
-            date = datetime.datetime.now()
-            subject = subject_lineEdit.text()
-            classtype = classtype_lineEdit.text()
-            details = details_textEdit.toPlainText()
-
-            db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', 
-                        [student["ID"], date, subject, classtype, student["Name"], details])
-            # Save (commit) the changes
-            db.commit()
+            insert_attendance_into_data_base(student)
             asist.append(student["ID"])
             beep.beep()
 
@@ -215,7 +221,8 @@ def procces_frame():
 
     showImage(image)
 
-    # scan_image(image)
+    qrs = scan_image(image)
+    save_attendance(qrs)
 
 def start_scan():
     stop_button.setEnabled(True)
