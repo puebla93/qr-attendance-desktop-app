@@ -1,16 +1,20 @@
 #!/usr/bin/python
-from cvinput import cvwindows, Obj
-import cv2
-import zbar
-import beep
-import sqlite3
-
 import argparse
 import datetime
-import requests
-import json
-import sys
 import os
+import socket
+import sqlite3
+import sys
+from http.client import HTTPSConnection
+
+import cv2
+import requests
+import zbar
+from requests.auth import HTTPBasicAuth
+
+import beep
+from cvinput import cvwindows
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Attendance control system scanner')
@@ -41,6 +45,9 @@ def main():
     scanner = QRScanner(w, h)
 
     attendance_so_far = []
+    class_details = {
+
+    }
     db = Attendance.get_data_base()
 
     while cvwindows.event_loop():
@@ -50,19 +57,11 @@ def main():
             qrs = Attendance.get_qrcodes(image, scanner)
             students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
 
-            Attendance.insert_attendance_into_data_base(students, class_details, db)
+            Attendance.insert_attendances_into_data_base(students, class_details, db)
             attendance_so_far.extend(students)
     
-    for student in asist["students"]:
-        db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False')''', 
-                    [student["ID"], date, subject, classtype, student["Name"]])
-
-        # Save (commit) the changes
-        db.commit()
-        db.close()
-
-        # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
-
+    Attendance.upload_pending_attendances()
+    
 class QRCode(object):
     """
         QRCode class contains the data and location of the QRCode in the image
@@ -177,26 +176,58 @@ class Attendance:
         return students
 
     @staticmethod
-    def insert_attendance_into_data_base(student, class_details, db):
+    def insert_attendances_into_data_base(students, class_details, db):
         date = datetime.datetime.now()
 
-        to_insert = [
-            student["ID"], 
-            date, 
-            class_details['course_name'], 
-            class_details['class_type'], 
-            student["Name"], 
-            class_details['details']
-        ]
-        db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', to_insert)
-        # Save (commit) the changes
-        db.commit()
+        for student in students:
+            to_insert = [
+                student["ID"], 
+                date, 
+                class_details['course_name'], 
+                class_details['class_type'], 
+                student["Name"], 
+                class_details['details']
+            ]
+            db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', to_insert)
+            # Save (commit) the changes
+            db.commit()
 
     @staticmethod
     def pending_uploaded(db):
         cur = db.execute("SELECT COUNT(*) FROM attendance WHERE uploaded = 'False'")
         count = cur.fetchone()
         return count[0]
+
+    @staticmethod
+    def authenticate(user_name, password):
+        url_login = '10.6.122.231:3000/users/sign_in'
+
+        # a = requests.get(url_login, auth=HTTPBasicAuth(user_name, password))
+
+        # print(a)
+        pass
+
+    @staticmethod
+    def upload_pending_attendances(db):
+        # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
+
+        # HOST = 'localhost'
+        # PORT = 80
+
+        c = HTTPSConnection("10.6.122.231:3000")        
+
+        # my_socked = socket.socket()
+        # # my_socked.connect((HOST, PORT))
+
+        # db.execute("UPDATE attendance SET uploaded = 'False'")
+        cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
+        for row in cur.fetchall():
+            print(row)
+        #     # my_socked.send()
+            db.execute("UPDATE attendance SET uploaded = 'True' WHERE id = ? AND date = ?",[row[0], row[1]])
+
+        db.commit()
+        # my_socked.close()
 
 if __name__ == '__main__':
     # main() 
