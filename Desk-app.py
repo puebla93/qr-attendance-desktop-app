@@ -7,13 +7,15 @@ from PyQt5.QtGui import *
 import sqlite3
 import cv2
 import zbar
-import beep
 import datetime
 import socket
 import json
 import requests
 from requests.auth import HTTPBasicAuth
 # from http.client import HTTPSConnection
+
+from attendance import QRCode, QRScanner, valid_qrcode, get_student_info
+import beep
 
 error_message = None
 # message_box = None
@@ -135,69 +137,6 @@ def main():
     widget.show()
 
     app.exec_()
-
-class QRCode(object):
-    """QRCode class"""
-    def __init__(self, data, location):
-        self.data = data
-        self.location = list(location)
-
-    def repr(self):
-        return str(self.data)
-
-class QRScanner(object):
-    """Zbar qrcode scanner wrapper class"""
-    def __init__(self, width, height):
-        self.scanner = zbar.ImageScanner()
-        self.scanner.parse_config('enable')
-        self.width = width
-        self.height = height
-
-    def get_qrcodes(self, image):
-        zbar_img = self.cv2_to_zbar_image(image)
-        self.scanner.scan(zbar_img)
-        result=[]
-        for symbol in zbar_img:
-            if str(symbol.type)!=str(zbar.Symbol.QRCODE): continue
-            fixed_data = symbol.data.decode("utf8").encode("shift_jis").decode("utf8")
-            result.append(QRCode(fixed_data,symbol.location))
-        del(zbar_img)
-        return result
-
-    def cv2_to_zbar_image(self, cv2_image):
-        return zbar.Image(self.width, self.height, 'Y800',cv2_image.tostring())
-
-def valid_qrcode(qrcode_data):
-
-    qrcode_data = qrcode_data.split("\n")
-    if len(qrcode_data) != 5 : return False
-
-    #N: Nombre
-    test = qrcode_data[0].split(":")
-    if test[0] != "N" or len(test[1]) == 0: return False
-
-    #A\: Apellidos
-    test = qrcode_data[1].split(":")
-    if test[0] != "A" or len(test[1]) == 0: return False
-
-    #CI\: 12345678901
-    test = qrcode_data[2].split(":")
-    if test[0] != "CI" or len(test[1].strip()) != 11: return False
-
-    #FV\: AA0000000
-    test = qrcode_data[3].split(":")
-    if test[0] != "FV" or len(test[1].strip()) != 9: return False
-
-    return True
-
-def get_student_info(qrcode_data):
-    # sacar la info del qrcode
-    qrcode_data = qrcode_data.split("\n")
-
-    return {
-                "ID": qrcode_data[2][-12:].strip(),
-                "Name": qrcode_data[0][2:].strip() + " " + qrcode_data[1][2:].strip(),
-            }
 
 def upload():
     # user_name = userName_lineEdit.text()

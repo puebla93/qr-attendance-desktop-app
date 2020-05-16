@@ -12,7 +12,7 @@ else:
    import alsaaudio
    import base64
 
-   wave = base64.decodestring(
+   wave_bytes = bytes(
    """UklGRqQMAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYAMAAApDG5VQ1zBAVqqAaR/
       +oBU013VCC+u5aGw881QFWCzD/GwcJ+c7FtMimGFFmG1pp0Q5shIt2LMHGC5fZw64FxEPmSsIlC+
       65qM2vw+KWbcKOzDWprF1O04vGY/Ls/JyplcziI0T2ZdNOLOwpkcyXku5GWDOeTT4JltxF4ogWV9
@@ -69,20 +69,17 @@ else:
       84KilqyOCX5cp1Ri+aOkvKllAyNawlfW/3Cniabt/NlWuluCBoKrTqMb9vNSO17EDNyvkKDd785O
       bGBCExyzwJ6Z6ZVKBGJyGeS2JZ23489FzGN4H9W7PprF3D1CHmYgJnLBj5qT1587GGYiLHfGI5p/
       0e02N2YhMZ7Lspnhy6AxOWYtNsfRPpkYxzYrqmURPCjX0JkMwW4lGGWwQVHdx5ueu84feWOsRiTj
-      XJ0jtwgaQGK6SmbpkJ6Ls3wTemAjTzzw+p8gr9QLC17SUUf3FKJ3rLoEG10kVEb/CqPmrA==""")
+      XJ0jtwgaQGK6SmbpkJ6Ls3wTemAjTzzw+p8gr9QLC17SUUf3FKJ3rLoEG10kVEb/CqPmrA=="""
+      , 'utf-8')
 
-   d = alsaaudio.PCM()
-   d.setchannels(1)
-   d.setrate(8000)
-   d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+   wave = base64.decodebytes(wave_bytes)
 
-   def beep():
-      global d
-      global wave
-      d.write(wave) 
+   # d = alsaaudio.PCM()
+   # d.setchannels(1)
+   # d.setrate(8000)
+   # d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
 
-   
-
-   
-
-
+   # def beep():
+   #    global d
+   #    global wave
+   #    d.write(wave)

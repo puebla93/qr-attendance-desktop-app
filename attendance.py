@@ -29,7 +29,6 @@ def parse_args():
 def main(subject, classtype):
     args = parse_args()
 
-
     camera = cvwindows.create("Camera")
 
     date = datetime.date.today()
@@ -80,9 +79,10 @@ def main(subject, classtype):
 
     # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
 
-# QRCode class contains the data and location of the QRCode in the image
 class QRCode(object):
-    """QRCode class"""
+    """
+        QRCode class contains the data and location of the QRCode in the image
+    """
     def __init__(self, data, location):
         self.data = data
         self.location = list(location)
@@ -136,9 +136,10 @@ def valid_qrcode(qrcode_data):
     return True
 
 def get_student_info(qrcode_data):
-    # sacar la info del qrcode
-    qrcode_data = qrcode_data.split("\n") 
-    #chequear el sexo
+    # get qrcode info
+    qrcode_data = qrcode_data.split("\n")
+
+    # get student sex
     # if int(qrcode_data[2][-2]) % 2 == 0:
     #     gender = "male"
     # else:
