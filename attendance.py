@@ -105,7 +105,7 @@ class Attendance:
 
         db_cursor = db_connection.cursor()
         db_cursor.execute('''CREATE TABLE IF NOT EXISTS attendance
-                (id integer PRIMARY KEY, name text, date timestamp, courseName text, classType text, details text, uploaded boolean)''')
+                (id integer, name text, date timestamp, courseName text, classType text, details text, uploaded boolean)''')
         db_cursor.close()
 
         return db_connection
@@ -198,7 +198,7 @@ class Attendance:
                 class_details['course_name'],
                 class_details['class_type'],
                 class_details['details'],
-                False
+                'False'
             ]
             db_cursor.execute('''INSERT INTO attendance(id, name, date, courseName, classType, details, uploaded) VALUES (?, ?, ?, ?, ?, ?, ?)''', to_insert)
         

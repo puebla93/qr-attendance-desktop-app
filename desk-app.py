@@ -7,196 +7,182 @@ from PyQt5.QtWidgets import *
 
 from attendance import Attendance
 
-error_message = None
-spin_box = None
-scan_button = None
-stop_button= None
-course_name_lineEdit = None
-classtype_lineEdit = None
-details_textEdit = None
-userName_lineEdit = None
-password_lineEdit = None
-pending_uploaded_label = None
-camera_image = None
-camera_timer = None
-capture = None
-scanner = None
-db = None
-attendance_so_far = []
-class_details = {}
-camera_size = QSize(640, 480)
-
 def main():
     app = QApplication(sys.argv)
+    window = MainWindow()
 
-    global db
-    db = Attendance.get_data_base_connection()
+    window.show()
+    sys.exit(app.exec())
 
-    global camera_timer
-    camera_timer = QTimer()
+class MainWindow(QWidget):
+    """
+    """
 
-    widget = QWidget()
-    widget.setWindowTitle("Attendance")
-    widget_izq = QWidget()
-    widget_der = QWidget()
-    widget_der.setMinimumSize(camera_size)
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
 
-    horizontal_layout = QHBoxLayout()
-    vertical_layout_izq = QVBoxLayout()
-    vertical_layout_der = QVBoxLayout()
+        self.capture = None
+        self.scanner = None
+        self.attendance_so_far = []
+        self.class_details = {}
 
-    widget.setLayout(horizontal_layout)
-    widget_izq.setLayout(vertical_layout_izq)
-    widget_der.setLayout(vertical_layout_der)
+        self.db = Attendance.get_data_base_connection()
 
-    global error_message
-    error_message = QErrorMessage()
+        self.setWindowTitle("Attendance")
 
-    global spin_box
-    global scan_button
-    global stop_button
-    global userName_lineEdit
-    global password_lineEdit
-    global pending_uploaded_label
-    spin_box_label = QLabel("Choose a camera index")
-    spin_box = QSpinBox()
-    scan_button = QPushButton("Scan")
-    upload_button = QPushButton("Upload")
-    stop_button = QPushButton("Stop")
-    stop_button.setEnabled(False)
-    userName_label = QLabel("User Name")
-    userName_lineEdit = QLineEdit()
-    password_label = QLabel("Password")
-    password_lineEdit = QLineEdit()
-    password_lineEdit.setEchoMode(2)
-    pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
+        self.create_global_widgets()
+        self.create_global_layouts()
+        self.set_layouts_to_global_widgets()
+        self.create_widget_components()
+        self.add_widgets_to_layouts()
+        self.define_signal_handlers()
 
-    global camera_image
-    global course_name_lineEdit
-    global classtype_lineEdit
-    global details_textEdit
-    camera_image = QLabel()
-    pix_map = QPixmap("Image-Black.png")
-    camera_image.setStyleSheet("background-color: black")
-    # camera_image.setPixmap(pix_map)
-    course_name_label = QLabel("Course Name")
-    course_name_lineEdit = QLineEdit()
-    classtype_label = QLabel("Class Type")
-    classtype_lineEdit = QLineEdit()
-    details_Label = QLabel("Details")
-    details_textEdit = QTextEdit()
+    def create_global_widgets(self):
+        self.widget_izq = QWidget()
+        self.widget_der = QWidget()
+        camera_size = QSize(640, 480)
+        self.widget_der.setMinimumSize(camera_size)
 
-    vertical_layout_izq.addWidget(spin_box_label)
-    vertical_layout_izq.addWidget(spin_box)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(scan_button)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(stop_button)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(course_name_label)
-    vertical_layout_izq.addWidget(course_name_lineEdit)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(classtype_label)
-    vertical_layout_izq.addWidget(classtype_lineEdit)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(details_Label)
-    vertical_layout_izq.addWidget(details_textEdit)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(userName_label)
-    vertical_layout_izq.addWidget(userName_lineEdit)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(password_label)
-    vertical_layout_izq.addWidget(password_lineEdit)
-    vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(upload_button)
-    vertical_layout_izq.addWidget(pending_uploaded_label)
+    def create_global_layouts(self):
+        self.horizontal_layout = QHBoxLayout()
+        self.vertical_layout_izq = QVBoxLayout()
+        self.vertical_layout_der = QVBoxLayout()
 
-    vertical_layout_der.addWidget(camera_image)
+    def set_layouts_to_global_widgets(self):
+        self.setLayout(self.horizontal_layout)
+        self.widget_izq.setLayout(self.vertical_layout_izq)
+        self.widget_der.setLayout(self.vertical_layout_der)
 
-    horizontal_layout.addWidget(widget_izq)
-    horizontal_layout.addWidget(widget_der)
+    def create_widget_components(self):
+        self.camera_timer = QTimer()
 
-    scan_button.clicked.connect(start_scan)
-    stop_button.clicked.connect(cancel_scan)
-    upload_button.clicked.connect(upload)
-    camera_timer.timeout.connect(procces_frame)
+        self.error_message = QErrorMessage()
 
-    widget.show()
+        self.spin_box_label = QLabel("Choose a camera index")
+        self.spin_box = QSpinBox()
+        self.scan_button = QPushButton("Scan")
+        self.upload_button = QPushButton("Upload")
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.setEnabled(False)
+        self.userName_label = QLabel("User Name")
+        self.userName_lineEdit = QLineEdit()
+        self.password_label = QLabel("Password")
+        self.password_lineEdit = QLineEdit()
+        self.password_lineEdit.setEchoMode(2)
+        self.pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_attendances_to_upload(self.db)) + " student(s) to upload")
 
-    app.exec_()
+        self.camera_image = QLabel()
+        self.pix_map = QPixmap("Image-Black.png")
+        self.camera_image.setStyleSheet("background-color: black")
+        # self.camera_image.setPixmap(pix_map)
+        self.course_name_label = QLabel("Course Name")
+        self.course_name_lineEdit = QLineEdit()
+        self.classtype_label = QLabel("Class Type")
+        self.classtype_lineEdit = QLineEdit()
+        self.details_Label = QLabel("Details")
+        self.details_textEdit = QTextEdit()
 
-def showImage(image):
-    h, w, c = image.shape
-    cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
-    qimage = QImage(image, w, h, c * w, QImage.Format_RGB888)
-    pix_map = QPixmap.fromImage(qimage)
-    camera_image.setPixmap(pix_map)
+    def add_widgets_to_layouts(self):
+        self.vertical_layout_izq.addWidget(self.spin_box_label)
+        self.vertical_layout_izq.addWidget(self.spin_box)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.scan_button)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.stop_button)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.course_name_label)
+        self.vertical_layout_izq.addWidget(self.course_name_lineEdit)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.classtype_label)
+        self.vertical_layout_izq.addWidget(self.classtype_lineEdit)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.details_Label)
+        self.vertical_layout_izq.addWidget(self.details_textEdit)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.userName_label)
+        self.vertical_layout_izq.addWidget(self.userName_lineEdit)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.password_label)
+        self.vertical_layout_izq.addWidget(self.password_lineEdit)
+        self.vertical_layout_izq.addStretch()
+        self.vertical_layout_izq.addWidget(self.upload_button)
+        self.vertical_layout_izq.addWidget(self.pending_uploaded_label)
 
-def procces_frame():
-    _, image = capture.read()
-    if image is None:
-        cancel_scan()
-        error_message.setWindowTitle("Invalid camera index")
-        error_message.showMessage("The camera index you choose is invalid.\nSelect 0 if you dont't have a USB camera connected")
-        error_message.show()
-        return
+        self.vertical_layout_der.addWidget(self.camera_image)
 
-    showImage(image)
+        self.horizontal_layout.addWidget(self.widget_izq)
+        self.horizontal_layout.addWidget(self.widget_der)
 
-    qrs = Attendance.get_qrcodes(image, scanner)
-    students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
+    def define_signal_handlers(self):
+        self.scan_button.clicked.connect(self.start_scan)
+        self.stop_button.clicked.connect(self.cancel_scan)
+        self.upload_button.clicked.connect(self.upload)
+        self.camera_timer.timeout.connect(self.procces_frame)
 
-    Attendance.register_attendance(students, class_details, db)
-    attendance_so_far.extend(students)
+    def showImage(self, image):
+        h, w, c = image.shape
+        cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
+        qimage = QImage(image, w, h, c * w, QImage.Format_RGB888)
+        pix_map = QPixmap.fromImage(qimage)
+        self.camera_image.setPixmap(pix_map)
 
-def start_scan():
-    stop_button.setEnabled(True)
-    scan_button.setEnabled(False)
-    camera_timer.start(50)
+    def procces_frame(self):
+        _, image = self.capture.read()
+        if image is None:
+            self.cancel_scan()
+            self.error_message.setWindowTitle("Invalid camera index")
+            self.error_message.showMessage("The camera index you choose is invalid.\nSelect 0 if you dont't have a USB camera connected")
+            self.error_message.show()
+            return
 
-    global capture
-    capture = cv2.VideoCapture(spin_box.value())
+        self.showImage(image)
 
-    global class_details
-    class_details = {
-        'course_name': course_name_lineEdit.text(),
-        'class_type': classtype_lineEdit.text(),
-        'details': details_textEdit.toPlainText()
-    }
+        qrs = Attendance.get_qrcodes(image, self.scanner)
+        students = Attendance.get_student_from_qrcode(qrs, self.attendance_so_far)
 
-def cancel_scan():
-    stop_button.setEnabled(False)
-    scan_button.setEnabled(True)
-    camera_timer.stop()
+        Attendance.register_attendance(students, self.class_details, self.db)
+        self.attendance_so_far.extend([student['ID'] for student in students])
 
-    global capture
-    capture.release()
-    capture = None
-    global  scanner
-    scanner = None
-    global attendance_so_far
-    attendance_so_far = []
-    global class_details
-    class_details = {}
+    def start_scan(self):
+        self.stop_button.setEnabled(True)
+        self.scan_button.setEnabled(False)
+        self.camera_timer.start(50)
 
-    pix_map = QPixmap("Image-Black.png")
-    camera_image.setStyleSheet("background-color: black")
-    # camera_image.setPixmap(pix_map)
+        self.capture = cv2.VideoCapture(self.spin_box.value())
 
-    global pending_uploaded_label
-    pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
+        self.class_details = {
+            'course_name': self.course_name_lineEdit.text(),
+            'class_type': self.classtype_lineEdit.text(),
+            'details': self.details_textEdit.toPlainText()
+        }
 
-def upload():
-    # user_name = userName_lineEdit.text()
-    user_name = 'jpuebla1993@gmail.com'
-    # password = password_lineEdit.text()
-    password = '12345678'
-    Attendance.authenticate(user_name, password)
+    def cancel_scan(self):
+        self.stop_button.setEnabled(False)
+        self.scan_button.setEnabled(True)
+        self.camera_timer.stop()
 
-    Attendance.upload_pending_attendances(db)
+        self.capture.release()
+        self.capture = None
+        self.scanner = None
+        self.attendance_so_far = []
+        self.class_details = {}
 
-    global pending_uploaded_label
-    pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
+        pix_map = QPixmap("Image-Black.png")
+        self.camera_image.setStyleSheet("background-color: black")
+        # self.camera_image.setPixmap(pix_map)
+
+        self.pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(self.db)) + " student(s) to upload")
+
+    def upload(self):
+        # user_name = userName_lineEdit.text()
+        user_name = 'jpuebla1993@gmail.com'
+        # password = password_lineEdit.text()
+        password = '12345678'
+        Attendance.authenticate(user_name, password)
+
+        Attendance.upload_pending_attendances(db)
+
+        self.pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(self.db)) + " student(s) to upload")
 
 if __name__ == '__main__':
     main()
