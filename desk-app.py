@@ -72,9 +72,10 @@ class MainWindow(QWidget):
         self.pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_attendances_to_upload(self.db)) + " student(s) to upload")
 
         self.camera_image = QLabel()
-        self.pix_map = QPixmap("Image-Black.png")
-        self.camera_image.setStyleSheet("background-color: black")
-        # self.camera_image.setPixmap(pix_map)
+        camera_size = self.widget_der.minimumSize()
+        self.pix_map = QPixmap(camera_size)
+        self.pix_map.fill(Qt.black)
+        self.camera_image.setPixmap(self.pix_map)
         self.course_name_label = QLabel("Course Name")
         self.course_name_lineEdit = QLineEdit()
         self.classtype_label = QLabel("Class Type")
@@ -123,8 +124,8 @@ class MainWindow(QWidget):
         h, w, c = image.shape
         cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
         qimage = QImage(image, w, h, c * w, QImage.Format_RGB888)
-        pix_map = QPixmap.fromImage(qimage)
-        self.camera_image.setPixmap(pix_map)
+        self.pix_map.convertFromImage(qimage)
+        self.camera_image.setPixmap(self.pix_map)
 
     def procces_frame(self):
         _, image = self.capture.read()
@@ -167,9 +168,8 @@ class MainWindow(QWidget):
         self.attendance_so_far = []
         self.class_details = {}
 
-        pix_map = QPixmap("Image-Black.png")
-        self.camera_image.setStyleSheet("background-color: black")
-        # self.camera_image.setPixmap(pix_map)
+        self.pix_map.fill(Qt.black)
+        self.camera_image.setPixmap(self.pix_map)
 
         self.pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(self.db)) + " student(s) to upload")
 
