@@ -59,7 +59,7 @@ def main():
         qrs = Attendance.get_qrcodes(image, scanner)
         students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
 
-        Attendance.insert_attendances_into_data_base(students, class_details, db)
+        Attendance.register_attendance(students, class_details, db)
         attendance_so_far.extend([student['ID'] for student in students])
     
     user_name = 'jpuebla1993@gmail.com'
@@ -71,6 +71,7 @@ class QRCode(object):
     """
         QRCode class contains the data and location of the QRCode in the image
     """
+
     def __init__(self, data, location):
         self.data = data
         self.location = list(location)
@@ -99,6 +100,9 @@ class QRScanner(object):
         return result
 
 class Attendance:
+    """
+        Class to encapsulate all functionalities needed to register attendance
+    """
 
     @staticmethod
     def get_data_base():
@@ -178,7 +182,7 @@ class Attendance:
         return students
 
     @staticmethod
-    def insert_attendances_into_data_base(students, class_details, db):
+    def register_attendance(students, class_details, db):
         date = datetime.datetime.now()
 
         for student in students:
