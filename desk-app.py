@@ -30,7 +30,7 @@ def main():
     app = QApplication(sys.argv)
 
     global db
-    db = Attendance.get_data_base()
+    db = Attendance.get_data_base_connection()
 
     global camera_timer
     camera_timer = QTimer()

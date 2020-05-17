@@ -23,13 +23,6 @@ def parse_args():
     parser.add_argument('-ty', "--type", dest="type",type=str, default='class_type', help='The type of the class (e.g. Conference, Practical Lesson, etc.)')
     parser.add_argument('-d', "--details", dest="details",type=str, default='', help='Class details that you want to specify (e.g First conference, Last practical lesson, etc.)')
 
-    # def folder(path):
-    #     if os.path.isdir(path):
-    #         return os.path.abspath(path)
-    #     else:
-    #         raise argparse.ArgumentTypeError("The specified path is not a directory")
-
-    # parser.add_argument('-f', '--folder', type=folder, default="./", help='The path of the folder to store the result. Defaults to "./"')
     return parser.parse_args()
 
 def main():
@@ -50,7 +43,7 @@ def main():
         'class_type': args.type,
         'details': args.details
     }
-    db = Attendance.get_data_base()
+    db = Attendance.get_data_base_connection()
 
     while cvwindows.event_loop():
         _ , image = capture.read()
@@ -107,18 +100,21 @@ class Attendance:
     """
 
     @staticmethod
-    def get_data_base():
-        db = sqlite3.connect('attendance.db')
-        db.execute('''CREATE TABLE IF NOT EXISTS attendance
-                (id integer, date timestamp, courseName text, classType text, name text, uploaded boolean, details text)''')
+    def get_data_base_connection(db_path='attendance.db'):
+        db_connection = sqlite3.connect(db_path)
 
-        return db
+        db_cursor = db_connection.cursor()
+        db_cursor.execute('''CREATE TABLE IF NOT EXISTS attendance
+                (id integer, date timestamp, courseName text, classType text, name text, uploaded boolean, details text)''')
+        db_cursor.close()
+
+        return db_connection
 
     @staticmethod
-    def close_data_base(db, commit_changes=True):
+    def close_data_base_connection(db_connection, commit_changes=True):
         if commit_changes:
-            db.commit()
-        db.close()
+            db_connection.commit()
+        db_connection.close()
 
     @staticmethod
     def valid_qrcode(qrcode_data):
@@ -192,6 +188,7 @@ class Attendance:
     @staticmethod
     def register_attendance(students, class_details, db):
         date = datetime.datetime.now()
+        db_cursor = db.cursor()
 
         for student in students:
             to_insert = [
@@ -202,14 +199,18 @@ class Attendance:
                 student["Name"], 
                 class_details['details']
             ]
-            db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', to_insert)
-            # Save (commit) the changes
-            db.commit()
+            db_cursor.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', to_insert)
+        
+        db_cursor.close()
+        # Save (commit) the changes
+        db.commit()
 
     @staticmethod
     def pending_attendances_to_upload(db):
-        cur = db.execute("SELECT COUNT(*) FROM attendance WHERE uploaded = 'False'")
-        count = cur.fetchone()
+        db_cursor = db.cursor()
+        db_cursor.execute("SELECT COUNT(*) FROM attendance WHERE uploaded = 'False'")
+        count = db_cursor.fetchone()
+        db_cursor.close()
         return count[0]
 
     @staticmethod
@@ -228,17 +229,20 @@ class Attendance:
         c = HTTPSConnection("10.6.122.231:3000")
 
         # my_socked = socket.socket()
-        # # my_socked.connect((HOST, PORT))
+        # my_socked.connect((HOST, PORT))
 
         # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
 
-        # db.execute("UPDATE attendance SET uploaded = 'False'")
-        cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
-        for row in cur.fetchall():
+        db_cursor = db.cursor()
+        db_cursor.execute("UPDATE attendance SET uploaded = 'False'")
+        db_cursor.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
+        for row in db_cursor.fetchall():
             print(row)
-        #     # my_socked.send()
-            db.execute("UPDATE attendance SET uploaded = 'True' WHERE id = ? AND date = ?",[row[0], row[1]])
+            # my_socked.send()
+            # db.execute("UPDATE attendance SET uploaded = 'True' WHERE id = ? AND date = ?",[row[0], row[1]])
 
+        db_cursor.close()
+        # Save (commit) the changes
         db.commit()
         # my_socked.close()
 
