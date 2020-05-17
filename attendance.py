@@ -199,7 +199,7 @@ class Attendance:
             db.commit()
 
     @staticmethod
-    def pending_uploaded(db):
+    def pending_attendances_to_upload(db):
         cur = db.execute("SELECT COUNT(*) FROM attendance WHERE uploaded = 'False'")
         count = cur.fetchone()
         return count[0]

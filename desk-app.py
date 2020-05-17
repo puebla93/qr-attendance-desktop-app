@@ -69,7 +69,7 @@ def main():
     password_label = QLabel("Password")
     password_lineEdit = QLineEdit()
     password_lineEdit.setEchoMode(2)
-    pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
+    pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
 
     global camera_image
     global course_name_lineEdit
@@ -146,7 +146,7 @@ def procces_frame():
     qrs = Attendance.get_qrcodes(image, scanner)
     students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
 
-    Attendance.insert_attendances_into_data_base(students, class_details, db)
+    Attendance.register_attendance(students, class_details, db)
     attendance_so_far.extend(students)
 
 def start_scan():
@@ -184,7 +184,7 @@ def cancel_scan():
     # camera_image.setPixmap(pix_map)
 
     global pending_uploaded_label
-    pending_uploaded_label.setText("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
+    pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
 
 def upload():
     # user_name = userName_lineEdit.text()
@@ -196,7 +196,7 @@ def upload():
     Attendance.upload_pending_attendances(db)
 
     global pending_uploaded_label
-    pending_uploaded_label.setText("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
+    pending_uploaded_label.setText("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
 
 if __name__ == '__main__':
     main()
