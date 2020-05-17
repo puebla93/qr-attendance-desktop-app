@@ -19,15 +19,17 @@ from cvinput import cvwindows
 def parse_args():
     parser = argparse.ArgumentParser(description='Attendance control system scanner')
     parser.add_argument('-c', "--camera", dest="camera",type=int, default=0, help='Index of the camera to use. Default 0, usually this is the camera on the laptop display')
-    parser.add_argument('-t', "--topic", dest="topic",type=str, default='course_name', help='The name of the course. It will be used on the output file.')
+    parser.add_argument('-t', "--topic", dest="topic",type=str, default='course_name', help='The name of the course.')
+    parser.add_argument('-ty', "--type", dest="type",type=str, default='class_type', help='The type of the class. Can be Conf, CP, etc.')
+    parser.add_argument('-d', "--details", dest="details",type=str, default='', help='The type of the class. class details we want to store.')
 
-    def folder(path):
-        if os.path.isdir(path):
-            return os.path.abspath(path)
-        else:
-            raise argparse.ArgumentTypeError("The specified path is not a directory")
+    # def folder(path):
+    #     if os.path.isdir(path):
+    #         return os.path.abspath(path)
+    #     else:
+    #         raise argparse.ArgumentTypeError("The specified path is not a directory")
 
-    parser.add_argument('-f', '--folder', type=folder, default="./", help='The path of the folder to store the result. Defaults to "./"')
+    # parser.add_argument('-f', '--folder', type=folder, default="./", help='The path of the folder to store the result. Defaults to "./"')
     return parser.parse_args()
 
 def main():
@@ -41,26 +43,30 @@ def main():
         print ("Invalid camera index. Use -c option to choose a correct camera on your system.")
         sys.exit(1)
 
-    h, w, _ = image.shape
-    scanner = QRScanner(w, h)
+    scanner = QRScanner()
 
     attendance_so_far = []
     class_details = {
-
+        'course_name': args.topic,
+        'class_type': args.type,
+        'details': args.details
     }
     db = Attendance.get_data_base()
 
     while cvwindows.event_loop():
-            _ , image = capture.read()
-            camera.show(image)
+        _ , image = capture.read()
+        camera.show(image)
 
-            qrs = Attendance.get_qrcodes(image, scanner)
-            students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
+        qrs = Attendance.get_qrcodes(image, scanner)
+        students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
 
-            Attendance.insert_attendances_into_data_base(students, class_details, db)
-            attendance_so_far.extend(students)
+        Attendance.insert_attendances_into_data_base(students, class_details, db)
+        attendance_so_far.extend(map(lambda student: student['ID'], students))
     
-    Attendance.upload_pending_attendances()
+    user_name = 'jpuebla1993@gmail.com'
+    password = '12345678'
+    Attendance.authenticate(user_name, password)
+    Attendance.upload_pending_attendances(db)
     
 class QRCode(object):
     """
@@ -74,26 +80,24 @@ class QRCode(object):
         return str(self.data)
 
 class QRScanner(object):
-    """Zbar qrcode scanner wrapper class"""
-    def __init__(self, width, height):
-        self.scanner = zbar.ImageScanner()
-        self.scanner.parse_config('enable')
-        self.width = width
-        self.height = height
+    """
+        Zbar qrcode scanner wrapper class
+    """
 
-    def get_qrcodes(self, image):
-        zbar_img = self.cv2_to_zbar_image(image)
-        self.scanner.scan(zbar_img)
+    ZBAR_QRCODE = 'QR-Code'
+
+    def __init__(self):
+        self.scanner = zbar.Scanner()
+
+    def get_qrcodes(self, zbar_img):
+        symbols = self.scanner.scan(zbar_img)
         result=[]
-        for symbol in zbar_img:
-            if str(symbol.type)!=str(zbar.Symbol.QRCODE): continue
+        for symbol in symbols:
+            if str(symbol.type) != QRScanner.ZBAR_QRCODE:
+                continue
             fixed_data = symbol.data.decode("utf8").encode("shift_jis").decode("utf8")
-            result.append(QRCode(fixed_data,symbol.location))
-        del(zbar_img)
+            result.append(QRCode(fixed_data,symbol.position))
         return result
-
-    def cv2_to_zbar_image(self, cv2_image):
-        return zbar.Image(self.width, self.height, 'Y800',cv2_image.tostring())
 
 class Attendance:
 
@@ -152,8 +156,7 @@ class Attendance:
     @staticmethod
     def get_qrcodes(image, scanner=None):
         if scanner is None:
-            h, w, _ = image.shape
-            scanner = QRScanner(w, h)
+            scanner = QRScanner()
 
         gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         qrs = scanner.get_qrcodes(gray_image)
@@ -170,7 +173,7 @@ class Attendance:
             student = Attendance.get_student_info(qr.data)
             # check if the student has already been inserted in the database
             if not student["ID"] in attendance_so_far:
-                students.append(student["ID"])
+                students.append(student)
                 beep.beep()
 
         return students
@@ -202,22 +205,21 @@ class Attendance:
     def authenticate(user_name, password):
         url_login = '10.6.122.231:3000/users/sign_in'
 
-        # a = requests.get(url_login, auth=HTTPBasicAuth(user_name, password))
-
+        # auth = requests.get(url_login, auth=HTTPBasicAuth(user_name, password))
         # print(a)
-        pass
+        # return auth
 
     @staticmethod
     def upload_pending_attendances(db):
-        # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
-
         # HOST = 'localhost'
         # PORT = 80
 
-        c = HTTPSConnection("10.6.122.231:3000")        
+        c = HTTPSConnection("10.6.122.231:3000")
 
         # my_socked = socket.socket()
         # # my_socked.connect((HOST, PORT))
+
+        # requests.post('http://127.0.0.1:5000', data = {'datetime': date, 'teacher' : 'dvd', 'signature' : 'AC', 'list' : j})
 
         # db.execute("UPDATE attendance SET uploaded = 'False'")
         cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
@@ -230,5 +232,4 @@ class Attendance:
         # my_socked.close()
 
 if __name__ == '__main__':
-    # main() 
-    main("subject_name", "classtype_name") 
+    main()
