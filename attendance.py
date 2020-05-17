@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('-c', "--camera", dest="camera",type=int, default=0, help='Index of the camera to use. Default 0, usually this is the camera on the laptop display')
     parser.add_argument('-t', "--topic", dest="topic",type=str, default='course_name', help='The name of the course (e.g Programming, Computer Architecture, etc.)')
     parser.add_argument('-ty', "--type", dest="type",type=str, default='class_type', help='The type of the class (e.g. Conference, Practical Lesson, etc.)')
-    parser.add_argument('-d', "--details", dest="details",type=str, help='Class details that you want to specify (e.g First conference, Last practical lesson, etc.)')
+    parser.add_argument('-d', "--details", dest="details",type=str, default='', help='Class details that you want to specify (e.g First conference, Last practical lesson, etc.)')
 
     # def folder(path):
     #     if os.path.isdir(path):
@@ -40,8 +40,7 @@ def main():
     capture = cv2.VideoCapture(args.camera)
     _ , image = capture.read()
     if image is None:
-        print ("Invalid camera index. Use -c option to choose a correct camera on your system.")
-        sys.exit(1)
+        raise argparse.ArgumentTypeError("Invalid camera index. Use -c option to choose a correct camera on your system.")
 
     scanner = QRScanner()
 
