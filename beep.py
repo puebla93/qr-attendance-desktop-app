@@ -74,7 +74,10 @@ else:
 
    wave = base64.decodebytes(wave_bytes)
 
-   d = alsaaudio.PCM(device='default:CARD=PCH')
+   devices = [pcm_device for pcm_device in alsaaudio.pcms() if pcm_device.startswith('default')]
+   device = devices[0] if devices else 'default'
+
+   d = alsaaudio.PCM(device=device)
    d.setchannels(1)
    d.setrate(8000)
    d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
