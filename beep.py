@@ -74,12 +74,12 @@ else:
 
    wave = base64.decodebytes(wave_bytes)
 
-   # d = alsaaudio.PCM()
-   # d.setchannels(1)
-   # d.setrate(8000)
-   # d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+   d = alsaaudio.PCM(device='default:CARD=PCH')
+   d.setchannels(1)
+   d.setrate(8000)
+   d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
 
-   # def beep():
-   #    global d
-   #    global wave
-   #    d.write(wave)
+   def beep():
+      global d
+      global wave
+      d.write(wave)
