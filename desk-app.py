@@ -1,27 +1,17 @@
 import sys
 
-from PyQt5.QtWidgets import *
+import cv2
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
-import sqlite3
-import cv2
-import zbar
-import datetime
-import socket
-import json
-import requests
-from requests.auth import HTTPBasicAuth
-# from http.client import HTTPSConnection
-
-from attendance import QRCode, QRScanner, valid_qrcode, get_student_info
-import beep
+from attendance import Attendance
 
 error_message = None
 spin_box = None
 scan_button = None
 stop_button= None
-subject_lineEdit = None
+course_name_lineEdit = None
 classtype_lineEdit = None
 details_textEdit = None
 userName_lineEdit = None
@@ -32,16 +22,15 @@ camera_timer = None
 capture = None
 scanner = None
 db = None
-asist = []
+attendance_so_far = []
+class_details = {}
 camera_size = QSize(640, 480)
 
 def main():
     app = QApplication(sys.argv)
 
     global db
-    db = sqlite3.connect('attendance.db')
-    db.execute('''CREATE TABLE IF NOT EXISTS attendance
-             (id integer, date timestamp, subject text, classtype text, name text, uploaded boolean, details text)''')
+    db = Attendance.get_data_base()
 
     global camera_timer
     camera_timer = QTimer()
@@ -80,19 +69,19 @@ def main():
     password_label = QLabel("Password")
     password_lineEdit = QLineEdit()
     password_lineEdit.setEchoMode(2)
-    pending_uploaded_label = QLabel("Missing " + str(pending_uploaded()) + " student(s) to upload")
+    pending_uploaded_label = QLabel("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
 
     global camera_image
-    global subject_lineEdit
+    global course_name_lineEdit
     global classtype_lineEdit
     global details_textEdit
     camera_image = QLabel()
     pix_map = QPixmap("Image-Black.png")
     camera_image.setStyleSheet("background-color: black")
     # camera_image.setPixmap(pix_map)
-    subject_label = QLabel("Subject")
-    subject_lineEdit = QLineEdit()
-    classtype_label = QLabel("Classtype")
+    course_name_label = QLabel("Course Name")
+    course_name_lineEdit = QLineEdit()
+    classtype_label = QLabel("Class Type")
     classtype_lineEdit = QLineEdit()
     details_Label = QLabel("Details")
     details_textEdit = QTextEdit()
@@ -104,8 +93,8 @@ def main():
     vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(stop_button)
     vertical_layout_izq.addStretch()
-    vertical_layout_izq.addWidget(subject_label)
-    vertical_layout_izq.addWidget(subject_lineEdit)
+    vertical_layout_izq.addWidget(course_name_label)
+    vertical_layout_izq.addWidget(course_name_lineEdit)
     vertical_layout_izq.addStretch()
     vertical_layout_izq.addWidget(classtype_label)
     vertical_layout_izq.addWidget(classtype_lineEdit)
@@ -136,79 +125,12 @@ def main():
 
     app.exec_()
 
-def upload():
-    # user_name = userName_lineEdit.text()
-    user_name = 'h.quintero@lab.matcom.uh.cu'
-    # password = password_lineEdit.text()
-    password = '12345678'
-
-    # HOST = 'localhost'
-    # PORT = 80
-
-    url_login = '10.6.122.231:3000/users/sign_in'
-
-    c = HTTPSConnection("10.6.122.231:3000")
-
-    a = requests.get(url_login, auth=HTTPBasicAuth(user_name, password))
-
-    print(a)
-
-    # my_socked = socket.socket()
-    # # my_socked.connect((HOST, PORT))
-
-    # # db.execute("UPDATE attendance SET uploaded = 'False'")
-    # cur = db.execute("SELECT * FROM attendance WHERE uploaded = 'False'")
-    # for row in cur.fetchall():
-    #     # print(row)
-    #     # my_socked.send()
-    #     db.execute("UPDATE attendance SET uploaded = 'True' WHERE id = ? AND date = ?",[row[0], row[1]])
-    #     pass
-
-    # # db.commit()
-    # global pending_uploaded_label
-    # pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
-    # my_socked.close()
-
 def showImage(image):
     h, w, c = image.shape
     cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
     qimage = QImage(image, w, h, c * w, QImage.Format_RGB888)
     pix_map = QPixmap.fromImage(qimage)
     camera_image.setPixmap(pix_map)
-
-def scan_image(image):
-    global  scanner
-    if scanner is None:
-        h, w, _ = image.shape
-        scanner = QRScanner(w, h)
-
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    qrs = scanner.get_qrcodes(gray_image)
-
-    return qrs
-
-def insert_attendance_into_data_base(student):
-    date = datetime.datetime.now()
-    subject = subject_lineEdit.text()
-    classtype = classtype_lineEdit.text()
-    details = details_textEdit.toPlainText()
-
-    db.execute('''INSERT INTO attendance VALUES (?, ?, ?, ?, ?, 'False', ?)''', 
-                [student["ID"], date, subject, classtype, student["Name"], details])
-    # Save (commit) the changes
-    db.commit()
-
-def save_attendance(qrs):
-     for qr in qrs:
-        if not valid_qrcode(qr.data):
-            continue
-
-        student = get_student_info(qr.data)
-        # check if the student has already been inserted in the database
-        if not student["ID"] in asist:
-            insert_attendance_into_data_base(student)
-            asist.append(student["ID"])
-            beep.beep()
 
 def procces_frame():
     _, image = capture.read()
@@ -221,8 +143,11 @@ def procces_frame():
 
     showImage(image)
 
-    qrs = scan_image(image)
-    save_attendance(qrs)
+    qrs = Attendance.get_qrcodes(image, scanner)
+    students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
+
+    Attendance.insert_attendances_into_data_base(students, class_details, db)
+    attendance_so_far.extend(students)
 
 def start_scan():
     stop_button.setEnabled(True)
@@ -231,6 +156,11 @@ def start_scan():
 
     global capture
     capture = cv2.VideoCapture(spin_box.value())
+
+    global class_details
+    class_details = {
+        
+    }
 
 def cancel_scan():
     stop_button.setEnabled(False)
@@ -242,19 +172,29 @@ def cancel_scan():
     capture = None
     global  scanner
     scanner = None
-    global asist
-    asist = []
+    global attendance_so_far
+    attendance_so_far = []
+    global class_details
+    class_details = {}
 
     pix_map = QPixmap("Image-Black.png")
-    camera_image.setPixmap(pix_map)
+    camera_image.setStyleSheet("background-color: black")
+    # camera_image.setPixmap(pix_map)
 
     global pending_uploaded_label
-    pending_uploaded_label.setText("Missing " + str(pending_uploaded()) + " student(s) to upload")
+    pending_uploaded_label.setText("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
 
-def pending_uploaded():
-    cur = db.execute("SELECT COUNT(*) FROM attendance WHERE uploaded = 'False'")
-    count = cur.fetchone()
-    return count[0]
+def upload():
+    # user_name = userName_lineEdit.text()
+    user_name = 'jpuebla1993@gmail.com'
+    # password = password_lineEdit.text()
+    password = '12345678'
+    Attendance.authenticate(user_name, password)
+
+    Attendance.upload_pending_attendances(db)
+
+    global pending_uploaded_label
+    pending_uploaded_label.setText("Missing " + str(Attendance.pending_uploaded(db)) + " student(s) to upload")
 
 if __name__ == '__main__':
     main()
