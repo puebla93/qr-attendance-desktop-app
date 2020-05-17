@@ -61,7 +61,7 @@ def main():
         students = Attendance.get_student_from_qrcode(qrs, attendance_so_far)
 
         Attendance.insert_attendances_into_data_base(students, class_details, db)
-        attendance_so_far.extend(map(lambda student: student['ID'], students))
+        attendance_so_far.extend([student['ID'] for student in students])
     
     user_name = 'jpuebla1993@gmail.com'
     password = '12345678'
