@@ -159,7 +159,9 @@ def start_scan():
 
     global class_details
     class_details = {
-        
+        'course_name': course_name_lineEdit.text(),
+        'class_type': classtype_lineEdit.text(),
+        'details': details_textEdit.toPlainText()
     }
 
 def cancel_scan():
