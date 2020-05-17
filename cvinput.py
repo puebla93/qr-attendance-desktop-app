@@ -9,15 +9,6 @@ import numpy as np
 # cv2.EVENT_FLAG_RBUTTON   cv2.EVENT_MBUTTONDOWN
 # cv2.EVENT_FLAG_SHIFTKEY  cv2.EVENT_MBUTTONUP
 
-class Obj(object):
-    def __init__(self, **kwargs):
-        for k,v in kwargs.items():
-            self.__setattr__(k,v)
-    def __repr__(self):
-        return str(self.__dict__)
-    def __str__(self):
-        return str(self.__dict__)
-
 class WindowManager(object):
     """Simple and centralized window management for OpenCV"""
     def __init__(self):
@@ -80,7 +71,7 @@ class CVWindow(object):
         if event == cv2.EVENT_RBUTTONDOWN: self.rb_drag_start = (x,y)
         if not self.rb_down: self.rb_drag_start = (-1,-1)
 
-    def show(self, img):
+    def show(self, img, mirror=False):
         cv2.imshow(self.name, img)
 
     def add_trackbar(self, name, default = 50, maxval = 100, allow_zero = True):
