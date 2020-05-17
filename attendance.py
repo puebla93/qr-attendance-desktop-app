@@ -115,6 +115,12 @@ class Attendance:
         return db
 
     @staticmethod
+    def close_data_base(db, commit_changes=True):
+        if commit_changes:
+            db.commit()
+        db.close()
+
+    @staticmethod
     def valid_qrcode(qrcode_data):
 
         qrcode_data = qrcode_data.split("\n")
