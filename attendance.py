@@ -66,6 +66,8 @@ def main():
     password = '12345678'
     Attendance.authenticate(user_name, password)
     Attendance.upload_pending_attendances(db)
+
+    print("Missing " + str(Attendance.pending_attendances_to_upload(db)) + " student(s) to upload")
     
 class QRCode(object):
     """
