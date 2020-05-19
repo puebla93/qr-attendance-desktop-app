@@ -8,9 +8,9 @@ import sys
 from http.client import HTTPSConnection
 
 import cv2
-import requests
+# import requests
 import zbar
-from requests.auth import HTTPBasicAuth
+# from requests.auth import HTTPBasicAuth
 
 import beep
 from cvinput import cvwindows
