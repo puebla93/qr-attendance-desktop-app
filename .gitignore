@@ -1,6 +1,4 @@
-*.png
 *.db
 __pycache__/
 *.pyc
 .vscode
-qrAttDeskEnv/
